@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>스쿨지지</title>
+    <style>
+        input, textarea, button {
+            font-family: 'Malgun Gothic', sans-serif;
+        }
+        body { margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
+        .container { display: flex; width: 100vw; height: 100vh; position: relative; }
+        
+        .sidebar { width: 350px; height: 100%; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-header { padding: 20px; background: #283c7e; color: white; }
+        .sidebar-header h2 { margin: 0; font-size: 20px; word-break: break-all; }
+        
+        .school-address { margin: 8px 0 0 0; font-size: 13px; opacity: 0.85; line-height: 1.4; word-break: keep-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .avg-box { margin-top: 8px; font-size: 14px; font-weight: bold; color: #ffffff; }
+        
+        .reviews-list-wrapper { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .reviews-list { flex: 1; padding: 20px; overflow-y: auto; background: #f8f9fa; }
+        
+        .reviews-list.locked { filter: blur(4px); pointer-events: none; }
+
+        .review-item { background: white; padding: 12px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; }
+        .review-top { display: flex; justify-content: flex-start; gap: 8px; margin-bottom: 5px; font-size: 13px; flex-wrap: wrap; }
+        .review-rating { font-weight: bold; }
+        .review-author { color: #555; font-weight: bold; background: #eef1f6; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+        .review-date { color: #999; margin-left: auto; font-size: 12px; }
+        .review-content { color: #333; font-size: 14px; line-height: 1.4; word-break: break-all; margin-top: 6px; }
+        
+        /* 수정/삭제 유틸리티 버튼 */
+        .review-actions { position: absolute; bottom: 8px; right: 12px; font-size: 11px; display: flex; gap: 6px; }
+        .action-link { color: #888; text-decoration: none; cursor: pointer; }
+        .action-link:hover { text-decoration: underline; color: #283c7e; }
+        .action-link.delete-link:hover { color: #c92a2a; }
+
+        .review-input-box { padding: 20px; background: white; border-top: 1px solid #dee2e6; z-index: 11; }
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; margin-bottom: 8px; }
+        .star-rating input { display: none; }
+        .star-rating label { cursor: pointer; width: 24px; height: 24px; font-size: 24px; color: #cbd5e1; }
+        .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #283c7e; }
+        .review-textarea { width: 100%; height: 60px; padding: 10px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; resize: none; font-size: 14px; }
+        .review-btn { width: 100%; padding: 10px; background: #283c7e; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+        .review-btn:hover { background: #163dbe; }
+
+        #map { flex: 1; height: 100%; }
+
+        .search-container { position: absolute; top: 15px; left: 370px; z-index: 20; width: 320px; }
+        .search-input { width: 100%; padding: 12px 15px; box-sizing: border-box; border: 2px solid #283c7e; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); outline: none; }
+        
+        .search-results { background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); margin-top: 5px; max-height: 260px; overflow-y: auto; display: none; border: 1px solid #dee2e6; }
+        .search-item { padding: 12px 15px; border-bottom: 1px solid #f1f3f5; cursor: pointer; }
+        .search-item:hover { background: #f8f9fa; }
+        .search-item-name { font-weight: bold; font-size: 14px; color: #333; }
+        .search-item-region { font-size: 11px; color: white; background: #283c7e; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+        .search-item-addr { font-size: 12px; color: #666; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .list-lock-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(248, 249, 250, 0.85); z-index: 5; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center; }
+        
+        .signup-warning-box { background-color: #fff5f5; border: 1px solid #ffc9c9; border-radius: 6px; padding: 12px; margin-bottom: 15px; text-align: left; }
+        .signup-warning-box p { margin: 0; font-size: 12px; color: #c92a2a; line-height: 1.5; word-break: keep-all; }
+        
+        /* 수정 모드 전용 폼 스타일 */
+        .edit-panel { background: #f1f3f5; padding: 10px; border-radius: 6px; margin-top: 8px; display: none; }
+        .edit-stars-row { display: flex; gap: 15px; margin-bottom: 8px; font-size: 12px; align-items: center; }
+        .edit-stars-select { padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc; }
+    </style>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=8edb8c0d892b0b923b0af5859d4aaf08"></script>
+</head>
+<body>
+
+    <div id="auth-modal" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); z-index: 10000; justify-content: center; align-items: center;">
+        <div class="auth-box" style="background: white; color: #333; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 100%; max-width: 420px; font-family: 'Malgun Gothic', sans-serif;">
+            
+            <div style="text-align: center; margin-bottom: 25px;">
+                <span style="font-size: 50px;">🎒</span>
+                <h2 style="margin: 15px 0 5px 0; color: #283c7e;">초등학교 지도 리뷰 서비스</h2>
+                <p style="font-size: 14px; color: #666;">선생님들을 위한 익명 리뷰 커뮤니티</p>
+            </div>
+
+            <div id="login-form">
+                <input type="text" id="login-id" placeholder="아이디" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+                <input type="password" id="login-pw" placeholder="비밀번호" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+                <button onclick="handleLogin()" style="width: 100%; padding: 12px; background: #283c7e; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px;">로그인</button>
+                <div style="text-align: center; margin-top: 15px; font-size: 13px; color: #666;">
+                    아직 회원이 아니신가요? <a href="#" onclick="toggleAuthForm('signup')" style="color: #283c7e; text-decoration: none; font-weight: bold;">회원가입</a>
+                </div>
+            </div>
+
+            <div id="signup-form" style="display: none;">
+                <div class="signup-warning-box">
+                    <p>
+                        <b>⚠️ 중요 고지 및 경고</b><br>
+                        본 서비스는 완전한 익명성 보장 및 개인정보 보호를 위해 이메일 등 일체의 본인인증 정보를 수집하지 않습니다.<br>
+                        <span style="text-decoration: underline; font-weight: bold;">가입하신 아이디와 비밀번호를 분실할 경우 절대 찾을 수 없으니</span>, 반드시 개인 메모장에 따로 기록해 두시기 바랍니다.
+                    </p>
+                </div>
+                <input type="text" id="signup-id" placeholder="사용할 아이디" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+                <input type="password" id="signup-pw" placeholder="사용할 비밀번호" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+                
+                <input type="text" id="signup-nick" placeholder="활동할 익명 닉네임" style="width: 100%; padding: 12px; margin-bottom: 4px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 20px; padding-left: 2px; line-height: 1.4;">
+                    * 한글 최대 6자 / 영문·숫자 최대 12자 혼용 제한<br>
+                    <span style="color: #283c7e;">(예시: 'good보이보이' 가능, 글자수 기준 초과시 가입 불가)</span>
+                </div>
+
+                <button onclick="handleSignup()" style="width: 100%; padding: 12px; background: #ff54e3; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px;">위 내용을 확인했으며, 회원가입 완료</button>
+                <div style="text-align: center; margin-top: 15px; font-size: 13px; color: #666;">
+                    이미 회원이신가요? <a href="#" onclick="toggleAuthForm('login')" style="color: #283c7e; text-decoration: none; font-weight: bold;">로그인</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="search-container">
+            <input type="text" class="search-input" id="search-box" oninput="handleSearch(this.value)" placeholder="초등학교 이름을 입력하세요...">
+            <div class="search-results" id="search-dropdown"></div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2 id="school-title">학교를 선택하세요</h2>
+                <p class="school-address" id="school-address">지도에서 마커를 클릭하거나 상단에서 학교를 검색해 보세요.</p>
+                <div class="avg-box" id="school-avg-school">🏫 학교평가: -.-- / 5.0</div>
+                <div class="avg-box" id="school-avg-love" style="margin-top: 4px;">🩷 사랑지수: -.-- / 5.0</div>
+            </div>
+            
+            <div class="reviews-list-wrapper">
+                <div class="reviews-list" id="reviews-container">
+                    <div style="color: #666; text-align: center; margin-top: 50px;">선택된 학교가 없습니다.</div>
+                </div>
+                
+                <div id="review-lock-overlay" class="list-lock-overlay" style="display: none;">
+                    <span style="font-size: 32px;">🔒</span>
+                    <h4 style="margin: 10px 0 5px 0; color:#333;">리뷰 열람 권한 제한됨</h4>
+                    <p style="font-size: 12px; color: #666; line-height: 1.5; margin: 0 0 12px 0;">
+                        안전한 커뮤니티를 위해<br>
+                        <b>최소 1개의 리뷰</b>를 등록하셔야<br>
+                        타 학교 리뷰 조회가 가능합니다.
+                    </p>
+                    <button onclick="document.getElementById('review-input').focus();" style="padding: 8px 14px; background: #283c7e; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;">
+                        내 학교 리뷰 작성하기 👇
+                    </button>
+                </div>
+            </div>
+
+            <div class="review-input-box">
+                <div style="display: flex; align-items: center; gap: 2px; margin-bottom: 6px;">
+                    <span style="font-size: 16px; font-weight: bold; color: #555;">🏫학교지수</span>
+                    <span style="font-size: 11px; color: #888; font-weight: normal;">(학교 분위기 등)</span>
+                </div>
+                <div class="star-rating" style="margin-bottom: 12px;">
+                    <input type="radio" id="school5" name="rating_school" value="5" checked/><label for="school5">🟊</label>
+                    <input type="radio" id="school4" name="rating_school" value="4"/><label for="school4">🟊</label>
+                    <input type="radio" id="school3" name="rating_school" value="3"/><label for="school3">🟊</label>
+                    <input type="radio" id="school2" name="rating_school" value="2"/><label for="school2">🟊</label>
+                    <input type="radio" id="school1" name="rating_school" value="1"/><label for="school1">🟊</label>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 2px; margin-bottom: 6px;">
+                    <span style="font-size: 16px; font-weight: bold; color: #555;">🩷사랑지수</span>
+                    <span style="font-size: 11px; color: #888; font-weight: normal;">(학부모 관심도💀)</span>
+                </div>
+                <div class="star-rating" style="margin-bottom: 10px;">
+                    <input type="radio" id="love5" name="rating_love" value="5" checked/><label for="love5">♥</label>
+                    <input type="radio" id="love4" name="rating_love" value="4"/><label for="love4">♥</label>
+                    <input type="radio" id="love3" name="rating_love" value="3"/><label for="love3">♥</label>
+                    <input type="radio" id="love2" name="rating_love" value="2"/><label for="love2">♥</label>
+                    <input type="radio" id="love1" name="rating_love" value="1"/><label for="love1">♥</label>
+                </div>
+
+                <textarea class="review-textarea" id="review-input" placeholder="선택한 학교에 대한 첫 익명 리뷰를 남겨주세요!"></textarea>
+                <button class="review-btn" onclick="submitReview()">평가 등록하기</button>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script>
+        var container = document.getElementById('map'); 
+        var options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 5 };
+        var map = new kakao.maps.Map(container, options);
+        var currentMarkers = [];
+        var selectedSchoolName = "";
+        var isReviewSubmitting = false; 
+        var loggedInUser = ""; 
+
+        // 프론트엔드용 바이트 검사 헬퍼 함수
+        function checkByteLength(str) {
+            let byte = 0;
+            for (let i = 0; i < str.length; i++) {
+                byte += (str.charCodeAt(i) > 128) ? 2 : 1;
+            }
+            return byte;
+        }
+
+        function handleSignup() {
+            var idInput = document.getElementById('signup-id').value.trim();
+            var pwInput = document.getElementById('signup-pw').value.trim();
+            var nickInput = document.getElementById('signup-nick').value.trim();
+
+            if (!idInput || !pwInput || !nickInput) {
+                alert("아이디, 비밀번호, 닉네임을 모두 입력해 주세요.");
+                return;
+            }
+
+            // 프론트엔드단 바이트 유효성 선행 검증
+            var byteLen = checkByteLength(nickInput);
+            if (byteLen < 2 || byteLen > 12) {
+                alert("닉네임 글자수 제한 규격에 맞지 않습니다.\n(한글 최대 6자, 영자 최대 12자 내외 혼용)");
+                return;
+            }
+
+            fetch('https://school-review-lxt0.onrender.com/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: idInput, password: pwInput, nickname: nickInput })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(err => { throw new Error(err.detail); });
+                return res.json();
+            })
+            .then(data => {
+                alert("회원가입이 성공적으로 완료되었습니다! 로그인을 진행해 주세요.");
+                toggleAuthForm('login');
+            })
+            .catch(err => {
+                alert("회원가입 실패: " + err.message);
+            });
+        }
+
+        function handleLogin() {
+            var idInput = document.getElementById('login-id').value.trim();
+            var pwInput = document.getElementById('login-pw').value.trim();
+
+            if (!idInput || !pwInput) {
+                alert("아이디와 비밀번호를 입력해 주세요.");
+                return;
+            }
+
+            fetch('https://school-review-lxt0.onrender.com/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: idInput, password: pwInput })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(err => { throw new Error(err.detail); });
+                return res.json();
+            })
+            .then(data => {
+                alert(data.user.nickname + "님 환영합니다! (익명 접속 완료)");
+                loggedInUser = data.user.username; 
+                document.getElementById('auth-modal').style.display = 'none'; 
+                
+                if (data.user.has_written_review === true) {
+                    document.getElementById('review-lock-overlay').style.display = 'none';
+                    document.getElementById('reviews-container').classList.remove('locked');
+                } else {
+                    document.getElementById('review-lock-overlay').style.display = 'flex';
+                    document.getElementById('reviews-container').classList.add('locked');
+                }
+            })
+            .catch(err => {
+                alert("로그인 실패: " + err.message);
+            });
+        }
+
+        function loadSchoolsInBounds() {
+            var bounds = map.getBounds();
+            var sw = bounds.getSouthWest();
+            var ne = bounds.getNorthEast();
+            var url = `https://school-review-lxt0.onrender.com/api/schools?min_lat=${sw.getLat()}&max_lat=${ne.getLat()}&min_lng=${sw.getLng()}&max_lng=${ne.getLng()}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(schools => {
+                    currentMarkers.forEach(marker => marker.setMap(null));
+                    currentMarkers = [];
+
+                    schools.forEach(school => {
+                        var markerPosition = new kakao.maps.LatLng(school.lat, school.lng); 
+                        var marker = new kakao.maps.Marker({ position: markerPosition });
+                        marker.setMap(map);
+                        currentMarkers.push(marker);
+
+                        kakao.maps.event.addListener(marker, 'click', function() {
+                            clickSchoolMarker(school.name, school.address);
+                        });
+                    });
+                });
+        }
+
+        function clickSchoolMarker(schoolName, schoolAddress) {
+            selectedSchoolName = schoolName;
+            document.getElementById('school-title').innerText = schoolName;
+            document.getElementById('school-address').innerText = schoolAddress || "주소 정보가 존재하지 않습니다.";
+            
+            fetch(`https://school-review-lxt0.onrender.com/api/reviews?school_name=${schoolName}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('school-avg-school').innerText = `🏫 학교평가: ${data.average_school.toFixed(2)} / 5.0`;
+                    document.getElementById('school-avg-love').innerText = `🩷 사랑지수: ${data.average_love.toFixed(2)} / 5.0`;
+                    
+                    var container = document.getElementById('reviews-container');
+                    container.innerHTML = "";
+
+                    if(data.reviews.length === 0) {
+                        container.innerHTML = '<div style="color: #666; text-align: center; margin-top: 50px;">등록된 리뷰가 없습니다. 첫 리뷰를 남겨보세요!</div>';
+                        return;
+                    }
+
+                    data.reviews.forEach(r => {
+                        // 🌟 본인이 작성한 리뷰인 경우에만 수정/삭제 액션 링크를 노출합니다.
+                        var actionButtons = "";
+                        if (r.username === loggedInUser) {
+                            actionButtons = `
+                                <div class="review-actions">
+                                    <span class="action-link" onclick="toggleEditPanel(${r.id})">수정</span>
+                                    <span class="action-link delete-link" onclick="deleteReview(${r.id})">삭제</span>
+                                </div>
+                            `;
+                        }
+
+                        var reviewHtml = `
+                            <div class="review-item" id="review-card-${r.id}">
+                                <div class="review-top">
+                                    <span class="review-author">✍️ ${r.nickname}</span>
+                                    <span class="review-rating" style="color: #283c7e;">🏫 ${r.rating_school}점</span>
+                                    <span class="review-rating" style="color: #ff54e3;">🩷 ${r.rating_love}점</span>
+                                    <span class="review-date">${r.date}</span>
+                                </div>
+                                <div class="review-content" id="review-text-${r.id}">${r.content}</div>
+                                ${actionButtons}
+                                
+                                <div class="edit-panel" id="edit-panel-${r.id}">
+                                    <div class="edit-stars-row">
+                                        <label>🏫 학교: 
+                                            <select class="edit-stars-select" id="edit-school-star-${r.id}">
+                                                <option value="5" ${r.rating_school===5?'selected':''}>5점</option>
+                                                <option value="4" ${r.rating_school===4?'selected':''}>4점</option>
+                                                <option value="3" ${r.rating_school===3?'selected':''}>3점</option>
+                                                <option value="2" ${r.rating_school===2?'selected':''}>2점</option>
+                                                <option value="1" ${r.rating_school===1?'selected':''}>1점</option>
+                                            </select>
+                                        </label>
+                                        <label>🩷 사랑: 
+                                            <select class="edit-stars-select" id="edit-love-star-${r.id}">
+                                                <option value="5" ${r.rating_love===5?'selected':''}>5점</option>
+                                                <option value="4" ${r.rating_love===4?'selected':''}>4점</option>
+                                                <option value="3" ${r.rating_love===3?'selected':''}>3점</option>
+                                                <option value="2" ${r.rating_love===2?'selected':''}>2점</option>
+                                                <option value="1" ${r.rating_love===1?'selected':''}>1점</option>
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <textarea class="review-textarea" id="edit-input-${r.id}" style="height:50px; margin-bottom:5px;">${r.content}</textarea>
+                                    <div style="text-align: right;">
+                                        <button onclick="toggleEditPanel(${r.id})" style="padding:4px 8px; font-size:12px; cursor:pointer; background:#ced4da; border:none; border-radius:3px; margin-right:4px;">취소</button>
+                                        <button onclick="submitEditReview(${r.id})" style="padding:4px 8px; font-size:12px; cursor:pointer; background:#283c7e; color:white; border:none; border-radius:3px;">수정완료</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML += reviewHtml;
+                    });
+                });
+        }
+
+        // 수정 패널 토글
+        function toggleEditPanel(reviewId) {
+            var panel = document.getElementById(`edit-panel-${reviewId}`);
+            var text = document.getElementById(`review-text-${reviewId}`);
+            if (panel.style.display === "block") {
+                panel.style.display = "none";
+                text.style.display = "block";
+            } else {
+                panel.style.display = "block";
+                text.style.display = "none";
+            }
+        }
+
+        // 🌟 [기능 추가] 리뷰 수정 처리 함수
+        function submitEditReview(reviewId) {
+            var editContent = document.getElementById(`edit-input-${reviewId}`).value.trim();
+            var editSchoolStar = parseInt(document.getElementById(`edit-school-star-${reviewId}`).value);
+            var editLoveStar = parseInt(document.getElementById(`edit-love-star-${reviewId}`).value);
+
+            if (!editContent) {
+                alert("리뷰 내용을 기입하세요.");
+                return;
+            }
+
+            fetch(`https://school-review-lxt0.onrender.com/api/reviews/${reviewId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: editContent,
+                    rating_school: editSchoolStar,
+                    rating_love: editLoveStar,
+                    username: loggedInUser
+                })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(err => { throw new Error(err.detail); });
+                return res.json();
+            })
+            .then(data => {
+                alert("리뷰가 성공적으로 수정되었습니다.");
+                var currentAddr = document.getElementById('school-address').innerText;
+                clickSchoolMarker(selectedSchoolName, currentAddr);
+            })
+            .catch(err => alert("수정 실패: " + err.message));
+        }
+
+        // 🌟 [기능 추가] 리뷰 삭제 처리 함수
+        function deleteReview(reviewId) {
+            if (!confirm("정말로 이 리뷰를 삭제하시겠습니까?")) return;
+
+            fetch(`https://school-review-lxt0.onrender.com/api/reviews/${reviewId}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: loggedInUser })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(err => { throw new Error(err.detail); });
+                return res.json();
+            })
+            .then(data => {
+                alert("리뷰가 삭제되었습니다.");
+                
+                // 삭제 후 남은 리뷰가 없다면 즉시 다시 락(Blur)을 적용시킵니다.
+                if (data.has_written_review === false) {
+                    document.getElementById('review-lock-overlay').style.display = 'flex';
+                    document.getElementById('reviews-container').classList.add('locked');
+                }
+                
+                var currentAddr = document.getElementById('school-address').innerText;
+                clickSchoolMarker(selectedSchoolName, currentAddr);
+            })
+            .catch(err => alert("삭제 실패: " + err.message));
+        }
+
+        function handleSearch(keyword) {
+            var dropdown = document.getElementById('search-dropdown');
+            if(!keyword.trim()) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            fetch(`https://school-review-lxt0.onrender.com/api/schools/search?keyword=${encodeURIComponent(keyword)}`)
+                .then(res => res.json())
+                .then(results => {
+                    dropdown.innerHTML = "";
+                    if(results.length === 0) {
+                        dropdown.innerHTML = '<div style="padding:12px; color:#999; font-size:13px; text-align:center;">검색 결과가 없습니다.</div>';
+                        dropdown.style.display = 'block';
+                        return;
+                    }
+
+                    results.forEach(s => {
+                        var item = document.createElement('div');
+                        item.className = 'search-item';
+                        item.innerHTML = `
+                            <div>
+                                <span class="search-item-name">${s.name}</span>
+                                <span class="search-item-region">${s.region}</span>
+                            </div>
+                            <div class="search-item-addr">${s.address}</div>
+                        `;
+                        
+                        item.onclick = function() {
+                            dropdown.style.display = 'none';
+                            document.getElementById('search-box').value = s.name;
+                            
+                            var moveLatLon = new kakao.maps.LatLng(s.lat, s.lng);
+                            map.setCenter(moveLatLon);
+                            map.setLevel(4);
+                            
+                            clickSchoolMarker(s.name, s.address);
+                        };
+                        dropdown.appendChild(item);
+                    });
+                    dropdown.style.display = 'block';
+                });
+        }
+
+        function submitReview() {
+            if (isReviewSubmitting) return;
+
+            var inputArea = document.getElementById('review-input');
+            var content = inputArea.value.trim();
+            
+            var schoolRatingElement = document.querySelector('input[name="rating_school"]:checked');
+            var loveRatingElement = document.querySelector('input[name="rating_love"]:checked');
+            
+            var ratingSchool = schoolRatingElement ? parseInt(schoolRatingElement.value) : 5;
+            var ratingLove = loveRatingElement ? parseInt(loveRatingElement.value) : 5;
+
+            if(!selectedSchoolName) {
+                alert("지도나 검색창에서 리뷰를 남길 학교를 먼저 선택해주세요!");
+                return;
+            }
+            if(!content) {
+                alert("리뷰 내용을 입력해주세요.");
+                return;
+            }
+
+            isReviewSubmitting = true;
+
+            fetch('https://school-review-lxt0.onrender.com/api/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    school_name: selectedSchoolName,
+                    content: content,
+                    rating_school: ratingSchool,
+                    rating_love: ratingLove,
+                    username: loggedInUser
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                inputArea.value = ""; 
+                var currentAddr = document.getElementById('school-address').innerText;
+                clickSchoolMarker(selectedSchoolName, currentAddr);
+                
+                alert("🎉 리뷰 등록 성공! 이제 전국의 모든 학교 리뷰를 자유롭게 조회할 수 있습니다.");
+                
+                document.getElementById('review-lock-overlay').style.display = 'none';
+                document.getElementById('reviews-container').classList.remove('locked');
+                isReviewSubmitting = false; 
+            })
+            .catch(error => {
+                isReviewSubmitting = false; 
+                console.error("리뷰 등록 실패:", error);
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if(!e.target.closest('.search-container')) {
+                document.getElementById('search-dropdown').style.display = 'none';
+            }
+        });
+
+        kakao.maps.event.addListener(map, 'tilesloaded', loadSchoolsInBounds);
+        kakao.maps.event.addListener(map, 'idle', loadSchoolsInBounds);
+        
+        function toggleAuthForm(formType) {
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+
+            if (formType === 'signup') {
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'block';
+            } else {
+                loginForm.style.display = 'block';
+                signupForm.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
