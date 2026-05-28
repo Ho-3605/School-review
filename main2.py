@@ -74,7 +74,13 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=[
+        "*"
+    ],
+    allow_credentials=False, # 🌟 프로덕션 배포 환경 안정성을 위해 False로 변경합니다.
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # 바이트 수 계산 함수 (한글 2바이트, 영문/숫자 1바이트)
