@@ -282,6 +282,8 @@ def signup(user_data: UserSignup):
         db.close()
         raise HTTPException(status_code=400, detail="닉네임 길이를 확인해 주세요. (한글 최대 6자, 영문/숫자 최대 12자)")
 
+    # ⭕ [정답] 변수를 안전하게 선언해 준 뒤 암호화로 넘겨줍니다.
+    clean_password = str(user_data.password)
     hashed_password = pwd_context.hash(clean_password)
     new_user = User(
         username=user_data.username,
