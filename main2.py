@@ -46,29 +46,29 @@ class User(Base):
 Base.metadata.create_all(bind=engine)
 
 # ================= 2. CSV 데이터를 가공하여 DB에 최초 등록 =================
-db = SessionLocal()
-if db.query(School).count() == 0:
-    print("⏳ 데이터베이스에 주소 정보를 포함한 전국 '초등학교' 데이터를 등록 중입니다...")
-    df = pd.read_csv("schools.csv", encoding="cp949").dropna(subset=["학교명", "위도", "경도"])
-    df = df[df["학교명"].str.endswith("초등학교")]
+# db = SessionLocal()
+# if db.query(School).count() == 0:
+#     print("⏳ 데이터베이스에 주소 정보를 포함한 전국 '초등학교' 데이터를 등록 중입니다...")
+#     df = pd.read_csv("schools.csv", encoding="cp949").dropna(subset=["학교명", "위도", "경도"])
+#     df = df[df["학교명"].str.endswith("초등학교")]
     
-    addr_col = "소재지도로명주소" if "소재지도로명주소" in df.columns else ("도로명주소" if "도로명주소" in df.columns else "주소")
+#     addr_col = "소재지도로명주소" if "소재지도로명주소" in df.columns else ("도로명주소" if "도로명주소" in df.columns else "주소")
     
-    for index, row in df.iterrows():
-        full_address = str(row[addr_col]) if addr_col in df.columns else "주소 정보 없음"
-        region_name = full_address.split()[0] if full_address != "주소 정보 없음" else "미분류"
+#     for index, row in df.iterrows():
+#         full_address = str(row[addr_col]) if addr_col in df.columns else "주소 정보 없음"
+#         region_name = full_address.split()[0] if full_address != "주소 정보 없음" else "미분류"
         
-        db_school = School(
-            name=row["학교명"],
-            lat=float(row["위도"]),
-            lng=float(row["경도"]),
-            address=full_address,
-            region=region_name
-        )
-        db.add(db_school)
-    db.commit()
-    print(f"✅ 총 {db.query(School).count()}개의 초등학교 및 주소 데이터 등록 완료!")
-db.close()
+#         db_school = School(
+#             name=row["학교명"],
+#             lat=float(row["위도"]),
+#             lng=float(row["경도"]),
+#             address=full_address,
+#             region=region_name
+#         )
+#         db.add(db_school)
+#     db.commit()
+#     print(f"✅ 총 {db.query(School).count()}개의 초등학교 및 주소 데이터 등록 완료!")
+# db.close()
 
 # ================= 3. FastAPI 서버 및 통로(API) 설정 =================
 app = FastAPI()
